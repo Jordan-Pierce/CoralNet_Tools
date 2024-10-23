@@ -107,20 +107,17 @@ class RectangleAnnotation(Annotation):
         if self.cropped_image is None:
             return None
 
-        # Create a copy of the points that are transformed to be relative to the cropped_image
-        cropped_top_left = QPointF(self.top_left.x() - self.cropped_bbox[0],
-                                   self.top_left.y() - self.cropped_bbox[1])
+        # Create a graphic item (perimeter) for the cropped image, transform the points
+        cropped_image_graphic = QGraphicsRectItem(self.top_left.x() - self.cropped_bbox[0],
+                                                  self.top_left.y() - self.cropped_bbox[1],
+                                                  self.bottom_right.x() - self.cropped_bbox[0],
+                                                  self.bottom_right.y() - self.cropped_bbox[1])
 
-        cropped_bottom_right = QPointF(self.bottom_right.x() - self.cropped_bbox[0],
-                                       self.bottom_right.y() - self.cropped_bbox[1])
-
-        cropped_rect = QRectF(cropped_top_left, cropped_bottom_right)
-
-        cropped_image_graphic = QGraphicsRectItem(cropped_rect)
         color = QColor(self.label.color)
         color.setAlpha(64)
-        brush = QBrush(color)
-        cropped_image_graphic.setBrush(brush)
+        pen = QPen(color, 4, Qt.SolidLine)
+        cropped_image_graphic.setPen(pen)
+        cropped_image_graphic.setBrush(QBrush(color))
         cropped_image_graphic.update()
 
         return cropped_image_graphic
