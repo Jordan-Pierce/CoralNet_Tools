@@ -434,3 +434,14 @@ class PolygonAnnotation(Annotation):
                 f"label={self.label.short_label_code}, "
                 f"data={self.data}, "
                 f"machine_confidence={self.machine_confidence})")
+
+    def get_cropped_points(self):
+        if self.cropped_image is None:
+            return None
+
+        # Create a copy of the points that are transformed to be relative to the cropped_image
+        cropped_points = [QPointF(point.x() - self.cropped_bbox[0], point.y() - self.cropped_bbox[1]) for point in self.points]
+
+        cropped_polygon = QPolygonF(cropped_points)
+        cropped_polygon_item = QGraphicsPolygonItem(cropped_polygon)
+        return cropped_polygon_item
