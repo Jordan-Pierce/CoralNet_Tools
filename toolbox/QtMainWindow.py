@@ -2,7 +2,7 @@ import warnings
 
 from PyQt5.QtCore import Qt, pyqtSignal, QEvent
 from PyQt5.QtGui import QIcon, QMouseEvent
-from PyQt5.QtWidgets import (QDoubleSpinBox, QListWidget)
+from PyQt5.QtWidgets import (QDoubleSpinBox, QListWidget, QComboBox, QCheckBox)
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QToolBar, QAction, QSizePolicy, QMessageBox,
                              QWidget, QVBoxLayout, QLabel, QHBoxLayout, QSpinBox, QSlider, QDialog, QPushButton)
 
@@ -402,6 +402,30 @@ class MainWindow(QMainWindow):
         self.annotation_size_spinbox.valueChanged.connect(self.annotation_window.set_annotation_size)
         self.annotation_window.annotationSizeChanged.connect(self.annotation_size_spinbox.setValue)
 
+        # Multiselect dropdown for image paths
+        self.image_paths_dropdown = QComboBox()
+        self.image_paths_dropdown.setEditable(True)
+        self.image_paths_dropdown.addItems(self.image_window.image_paths)
+        self.image_paths_dropdown.setInsertPolicy(QComboBox.NoInsert)
+        self.image_paths_dropdown.setDuplicatesEnabled(False)
+        self.image_paths_dropdown.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        # Multiselect dropdown for short code labels
+        self.short_code_labels_dropdown = QComboBox()
+        self.short_code_labels_dropdown.setEditable(True)
+        self.short_code_labels_dropdown.addItems([label.short_label_code for label in self.label_window.labels])
+        self.short_code_labels_dropdown.setInsertPolicy(QComboBox.NoInsert)
+        self.short_code_labels_dropdown.setDuplicatesEnabled(False)
+        self.short_code_labels_dropdown.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        # Multiselect dropdown for annotation options
+        self.annotation_options_dropdown = QComboBox()
+        self.annotation_options_dropdown.setEditable(True)
+        self.annotation_options_dropdown.addItems(["All", "PatchAnnotations", "RectangleAnnotations", "PolygonAnnotations"])
+        self.annotation_options_dropdown.setInsertPolicy(QComboBox.NoInsert)
+        self.annotation_options_dropdown.setDuplicatesEnabled(False)
+        self.annotation_options_dropdown.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
         # Add widgets to status bar layout
         self.status_bar_layout.addWidget(self.image_dimensions_label)
         self.status_bar_layout.addWidget(self.mouse_position_label)
@@ -416,6 +440,13 @@ class MainWindow(QMainWindow):
         self.status_bar_layout.addWidget(self.uncertainty_thresh_spinbox)
         self.status_bar_layout.addWidget(QLabel("Annotation Size:"))
         self.status_bar_layout.addWidget(self.annotation_size_spinbox)
+        self.status_bar_layout.addStretch()
+        self.status_bar_layout.addWidget(QLabel("Image Paths:"))
+        self.status_bar_layout.addWidget(self.image_paths_dropdown)
+        self.status_bar_layout.addWidget(QLabel("Short Code Labels:"))
+        self.status_bar_layout.addWidget(self.short_code_labels_dropdown)
+        self.status_bar_layout.addWidget(QLabel("Annotation Options:"))
+        self.status_bar_layout.addWidget(self.annotation_options_dropdown)
 
         # --------------------------------------------------
         # Create the main layout
