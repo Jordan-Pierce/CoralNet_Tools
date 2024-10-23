@@ -786,23 +786,26 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Critical Error", f"{e}")
 
     def open_spotlight_window_dialog(self):
-        if not self.image_window.image_paths:
-            QMessageBox.warning(self,
-                                "Spotlight",
-                                "No images are present in the project.")
-            return
-
-        if not self.annotation_window.annotations_dict:
-            QMessageBox.warning(self,
-                                "Spotlight",
-                                "No annotations are present in the project.")
-            return
+        # if not self.image_window.image_paths:
+        #     QMessageBox.warning(self,
+        #                         "Spotlight",
+        #                         "No images are present in the project.")
+        #     return
+        #
+        # if not self.annotation_window.annotations_dict:
+        #     QMessageBox.warning(self,
+        #                         "Spotlight",
+        #                         "No annotations are present in the project.")
+        #     return
 
         try:
             self.untoggle_all_tools()
             self.spotlight_window.exec_()
         except Exception as e:
             QMessageBox.critical(self, "Critical Error", f"{e}")
+
+        self.spotlight_window = None
+        self.spotlight_window = SpotlightWindow(self)
 
 
 class ClickableAction(QAction):

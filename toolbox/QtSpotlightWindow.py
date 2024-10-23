@@ -2,7 +2,8 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QStatusBar, QTableWidget, QGraphicsView, QScrollArea, QGraphicsScene)
+from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QStatusBar, QTableWidget, QGraphicsView, QScrollArea,
+                             QGraphicsScene, QPushButton)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -10,13 +11,14 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QStatusBar, QTab
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SpotlightWindow(QWidget):
+class SpotlightWindow(QDialog):
     def __init__(self, main_window, parent=None):
         super(SpotlightWindow, self).__init__(parent)
         self.main_window = main_window
         self.annotation_window = main_window.annotation_window
 
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setWindowTitle("Spotlight")
+        self.setWindowState(Qt.WindowMaximized)  # Ensure the dialog is maximized
 
         # Create the main layout
         self.main_layout = QVBoxLayout(self)
@@ -43,3 +45,31 @@ class SpotlightWindow(QWidget):
         # Add a horizontal scrollable area to display graphic items (bottom half)
         self.scroll_area = QScrollArea(self)
         self.main_layout.addWidget(self.scroll_area)
+
+        # Add Cancel, Apply, and Okay buttons
+        self.buttons_layout = QHBoxLayout()
+        self.cancel_button = QPushButton('Cancel', self)
+        self.cancel_button.clicked.connect(self.close)
+        self.buttons_layout.addWidget(self.cancel_button)
+        self.apply_button = QPushButton('Apply', self)
+        self.apply_button.clicked.connect(self.apply)
+        self.buttons_layout.addWidget(self.apply_button)
+        self.save_button = QPushButton('Save', self)
+        self.save_button.clicked.connect(self.save)
+        self.buttons_layout.addWidget(self.save_button)
+        self.main_layout.addLayout(self.buttons_layout)
+
+    def apply(self):
+        pass
+
+    def save(self):
+        pass
+
+    def update_table(self):
+        pass
+
+    def update_graphics(self):
+        pass
+
+    def update_scroll_area(self):
+        pass
