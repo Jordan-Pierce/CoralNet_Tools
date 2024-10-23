@@ -1,6 +1,6 @@
 import warnings
 
-from PyQt5.QtCore import Qt, QPointF
+from PyQt5.QtCore import Qt, QPointF, QRectF
 from PyQt5.QtGui import QPixmap, QColor, QPen, QBrush, QPolygonF
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsRectItem
 from rasterio.windows import Window
@@ -102,6 +102,21 @@ class RectangleAnnotation(Annotation):
             self.cropped_image = self.cropped_image.scaled(new_size[0], new_size[1])
 
         return self.cropped_image
+
+    def get_cropped_image_graphic(self):
+        if self.cropped_image is None:
+            return None
+
+        # Create a copy of the points that are transformed to be relative to the cropped_image
+        cropped_top_left = QPointF(self.top_left.x() - self.cropped_bbox[0],
+                                   self.top_left.y() - self.cropped_bbox[1])
+
+        cropped_bottom_right = QPointF(self.bottom_right.x() - self.cropped_bbox[0],
+                                       self.bottom_right.y() - self.cropped_bbox[1])
+
+        cropped_rect = QRectF(cropped_top_left, cropped_bottom_right)
+        cropped_rect_item = QGraphicsRectItem(cropped_rect)
+        return cropped_rect_item
 
     def create_graphics_item(self, scene: QGraphicsScene):
         rect = QGraphicsRectItem(self.top_left.x(), self.top_left.y(),
@@ -272,15 +287,3 @@ class RectangleAnnotation(Annotation):
                 f"label={self.label.short_label_code}, "
                 f"data={self.data}, "
                 f"machine_confidence={self.machine_confidence})")
-
-    def get_cropped_points(self):
-        if self.cropped_image is None:
-            return None
-
-        # Create a copy of the points that are transformed to be relative to the cropped_image
-        cropped_top_left = QPointF(self.top_left.x() - self.cropped_bbox[0], self.top_left.y() - self.cropped_bbox[1])
-        cropped_bottom_right = QPointF(self.bottom_right.x() - self.cropped_bbox[0], self.bottom_right.y() - self.cropped_bbox[1])
-
-        cropped_rect = QRectF(cropped_top_left, cropped_bottom_right)
-        cropped_rect_item = QGraphicsRectItem(cropped_rect)
-        return cropped_rect_item

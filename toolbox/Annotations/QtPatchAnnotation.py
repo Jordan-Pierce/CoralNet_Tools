@@ -83,6 +83,19 @@ class PatchAnnotation(Annotation):
 
         return self.cropped_image
 
+    def get_cropped_image_graphic(self):
+        if self.cropped_image is None:
+            return None
+
+        half_size = self.annotation_size / 2
+        cropped_rect = QRectF(self.center_xy.x() - half_size,
+                              self.center_xy.y() - half_size,
+                              self.annotation_size,
+                              self.annotation_size)
+
+        cropped_rect_item = QGraphicsRectItem(cropped_rect)
+        return cropped_rect_item
+
     def create_graphics_item(self, scene: QGraphicsScene):
         half_size = self.annotation_size / 2
         self.graphics_item = QGraphicsRectItem(self.center_xy.x() - half_size,
@@ -199,16 +212,3 @@ class PatchAnnotation(Annotation):
                 f"label={self.label.short_label_code}, "
                 f"data={self.data}, "
                 f"machine_confidence={self.machine_confidence})")
-
-    def get_cropped_points(self):
-        if self.cropped_image is None:
-            return None
-
-        half_size = self.annotation_size / 2
-        cropped_rect = QRectF(self.center_xy.x() - half_size,
-                              self.center_xy.y() - half_size,
-                              self.annotation_size,
-                              self.annotation_size)
-
-        cropped_rect_item = QGraphicsRectItem(cropped_rect)
-        return cropped_rect_item
