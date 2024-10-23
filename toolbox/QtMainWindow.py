@@ -6,11 +6,14 @@ from PyQt5.QtWidgets import (QDoubleSpinBox, QListWidget)
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QToolBar, QAction, QSizePolicy, QMessageBox,
                              QWidget, QVBoxLayout, QLabel, QHBoxLayout, QSpinBox, QSlider, QDialog, QPushButton)
 
+from toolbox.QtEventFilter import GlobalEventFilter
+
 from toolbox.QtAnnotationWindow import AnnotationWindow
 from toolbox.QtConfidenceWindow import ConfidenceWindow
-from toolbox.QtEventFilter import GlobalEventFilter
 from toolbox.QtImageWindow import ImageWindow
 from toolbox.QtLabelWindow import LabelWindow
+from toolbox.QtSpotlightWindow import SpotlightWindow
+
 from toolbox.QtPatchSampling import PatchSamplingDialog
 
 from toolbox.MachineLearning.QtBatchInference import BatchInferenceDialog
@@ -62,6 +65,7 @@ class MainWindow(QMainWindow):
         self.label_window = LabelWindow(self)
         self.image_window = ImageWindow(self)
         self.confidence_window = ConfidenceWindow(self)
+        self.spotlight_window = SpotlightWindow(self)
 
         self.io_dialog = IODialog(self)
 
@@ -71,14 +75,17 @@ class MainWindow(QMainWindow):
 
         self.import_dataset_dialog = ImportDatasetDialog(self)
         self.export_dataset_dialog = ExportDatasetDialog(self)
+
+        self.patch_annotation_sampling_dialog = PatchSamplingDialog(self)
+
         self.merge_datasets_dialog = MergeDatasetsDialog(self)
         self.train_model_dialog = TrainModelDialog(self)
         self.evaluate_model_dialog = EvaluateModelDialog(self)
         self.optimize_model_dialog = OptimizeModelDialog(self)
         self.deploy_model_dialog = DeployModelDialog(self)
         self.batch_inference_dialog = BatchInferenceDialog(self)
+
         self.sam_deploy_model_dialog = SAMDeployModelDialog(self)
-        self.patch_annotation_sampling_dialog = PatchSamplingDialog(self)
 
         # Connect signals to update status bar
         self.annotation_window.imageLoaded.connect(self.update_image_dimensions)
@@ -266,6 +273,11 @@ class MainWindow(QMainWindow):
         self.sam_deploy_model_action = QAction("Deploy Model", self)
         self.sam_deploy_model_action.triggered.connect(self.open_sam_deploy_model_dialog)
         self.sam_menu.addAction(self.sam_deploy_model_action)
+
+        # Spotlight window
+        self.spotlight_action = QAction("Spotlight", self)
+        self.spotlight_action.triggered.connect(self.open_spotlight_window_dialog)
+        self.menu_bar.addAction(self.spotlight_action)
 
         # Create and add the toolbar
         self.toolbar = QToolBar("Tools", self)
@@ -672,7 +684,6 @@ class MainWindow(QMainWindow):
         self.patch_annotation_sampling_dialog = None
         self.patch_annotation_sampling_dialog = PatchSamplingDialog(self)
 
-
     def open_import_dataset_dialog(self):
         try:
             self.untoggle_all_tools()
@@ -771,6 +782,25 @@ class MainWindow(QMainWindow):
         try:
             self.untoggle_all_tools()
             self.sam_deploy_model_dialog.exec_()
+        except Exception as e:
+            QMessageBox.critical(self, "Critical Error", f"{e}")
+
+    def open_spotlight_window_dialog(self):
+        if not self.image_window.image_paths:
+            QMessageBox.warning(self,
+                                "Spotlight",
+                                "No images are present in the project.")
+            return
+
+        if not self.annotation_window.annotations_dict:
+            QMessageBox.warning(self,
+                                "Spotlight",
+                                "No annotations are present in the project.")
+            return
+
+        try:
+            self.untoggle_all_tools()
+            self.spotlight_window.exec_()
         except Exception as e:
             QMessageBox.critical(self, "Critical Error", f"{e}")
 

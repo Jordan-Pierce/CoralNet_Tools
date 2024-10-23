@@ -1,7 +1,7 @@
 import warnings
-from concurrent.futures import ThreadPoolExecutor
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from PyQt5.QtCore import Qt, pyqtSignal, QPointF, QRectF, QMetaObject
+from PyQt5.QtCore import Qt, pyqtSignal, QPointF, QRectF
 from PyQt5.QtGui import QMouseEvent, QPixmap
 from PyQt5.QtWidgets import (QApplication, QGraphicsView, QGraphicsScene, QMessageBox, QGraphicsPixmapItem)
 
@@ -18,8 +18,6 @@ from toolbox.Tools.QtSelectTool import SelectTool
 from toolbox.Tools.QtZoomTool import ZoomTool
 
 from toolbox.QtProgressBar import ProgressBar
-
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
