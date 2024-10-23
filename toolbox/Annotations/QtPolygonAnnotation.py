@@ -235,8 +235,15 @@ class PolygonAnnotation(Annotation):
                                   point.y() - self.cropped_bbox[1]) for point in self.points]
 
         cropped_polygon = QPolygonF(cropped_points)
-        cropped_polygon_item = QGraphicsPolygonItem(cropped_polygon)
-        return cropped_polygon_item
+        cropped_image_graphic = QGraphicsPolygonItem(cropped_polygon)
+
+        color = QColor(self.label.color)
+        color.setAlpha(64)
+        brush = QBrush(color)
+        cropped_image_graphic.setBrush(brush)
+        cropped_image_graphic.update()
+
+        return cropped_image_graphic
 
     def create_graphics_item(self, scene: QGraphicsScene):
         polygon = QPolygonF(self.points)

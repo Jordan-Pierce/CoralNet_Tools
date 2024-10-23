@@ -93,8 +93,15 @@ class PatchAnnotation(Annotation):
                               self.annotation_size,
                               self.annotation_size)
 
-        cropped_rect_item = QGraphicsRectItem(cropped_rect)
-        return cropped_rect_item
+        cropped_image_graphic = QGraphicsRectItem(cropped_rect)
+
+        color = QColor(self.label.color)
+        color.setAlpha(64)
+        brush = QBrush(color)
+        cropped_image_graphic.setBrush(brush)
+        cropped_image_graphic.update()
+
+        return cropped_image_graphic
 
     def create_graphics_item(self, scene: QGraphicsScene):
         half_size = self.annotation_size / 2

@@ -115,8 +115,15 @@ class RectangleAnnotation(Annotation):
                                        self.bottom_right.y() - self.cropped_bbox[1])
 
         cropped_rect = QRectF(cropped_top_left, cropped_bottom_right)
-        cropped_rect_item = QGraphicsRectItem(cropped_rect)
-        return cropped_rect_item
+
+        cropped_image_graphic = QGraphicsRectItem(cropped_rect)
+        color = QColor(self.label.color)
+        color.setAlpha(64)
+        brush = QBrush(color)
+        cropped_image_graphic.setBrush(brush)
+        cropped_image_graphic.update()
+
+        return cropped_image_graphic
 
     def create_graphics_item(self, scene: QGraphicsScene):
         rect = QGraphicsRectItem(self.top_left.x(), self.top_left.y(),
