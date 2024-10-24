@@ -8,7 +8,7 @@ from ultralytics import YOLO
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QStatusBar, QTableWidget, QGraphicsView, QScrollArea,
                              QGraphicsScene, QPushButton, QComboBox, QLabel, QWidget, QSizePolicy, QGridLayout,
-                             QFileDialog, QMainWindow)
+                             QFileDialog, QMainWindow, QTableWidgetItem)
 
 from toolbox.Annotations.QtPatchAnnotation import PatchAnnotation
 from toolbox.Annotations.QtRectangleAnnotation import RectangleAnnotation
@@ -204,16 +204,27 @@ class SpotlightWindow(QMainWindow):
         self.update_table()
 
     def update_table(self):
-        # Display the annotations as rows in the table widget
-        # using the to_dict method of each annotation, if
-        # the annotation type is in the filtered_annotations list,
-        # the annotation's image path is in the filtered_images list,
-        # and the annotation's label is in the filtered_labels list.
+        # Clear the table before populating it with new data
         self.table_widget.clear()
         self.table_widget.setRowCount(0)
         self.table_widget.setColumnCount(0)
-        # ...
-        pass
+
+        # Set the column headers
+        self.table_widget.setColumnCount(4)
+        self.table_widget.setHorizontalHeaderLabels(["Label Short Code", "Label Long Code", "Image Path", "Annotation Type"])
+
+        # Populate the table with filtered annotations
+        for annotation in self.annotation_window.annotations_dict.values():
+            annotation_dict = annotation.to_dict()
+            if (annotation_dict['image_path'] in self.filtered_images and
+                annotation_dict['label_short_code'] in self.filtered_labels and
+                type(annotation).__name__ in self.filtered_annotations):
+                row_position = self.table_widget.rowCount()
+                self.table_widget.insertRow(row_position)
+                self.table_widget.setItem(row_position, 0, QTableWidgetItem(annotation_dict['label_short_code']))
+                self.table_widget.setItem(row_position, 1, QTableWidgetItem(annotation_dict['label_long_code']))
+                self.table_widget.setItem(row_position, 2, QTableWidgetItem(annotation_dict['image_path']))
+                self.table_widget.setItem(row_position, 3, QTableWidgetItem(type(annotation).__name__))
 
     def update_graphics(self):
         # Implement graphics update logic
