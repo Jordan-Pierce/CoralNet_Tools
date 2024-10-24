@@ -28,6 +28,10 @@ class SpotlightWindow(QMainWindow):
         self.label_window = main_window.label_window
         self.annotation_window = main_window.annotation_window
 
+        self.filtered_images = []
+        self.filtered_labels = []
+        self.filtered_annotations = []
+
         self.model_path = ""
         self.loaded_model = None
 
@@ -54,6 +58,10 @@ class SpotlightWindow(QMainWindow):
             if child.widget():
                 child.widget().deleteLater()
 
+        self.filtered_images = []
+        self.filtered_labels = []
+        self.filtered_annotations = []
+
         # Add a status bar widget along the top
         self.status_bar = QStatusBar(self)
 
@@ -65,7 +73,7 @@ class SpotlightWindow(QMainWindow):
         self.image_dropdown.setInsertPolicy(QComboBox.NoInsert)
         self.image_dropdown.setDuplicatesEnabled(False)
         self.image_dropdown.setToolTip("Select images")
-        self.image_dropdown.currentIndexChanged.connect(self.filter_image_paths)
+        self.image_dropdown.currentIndexChanged.connect(self.filter_images)
 
         # Multiselect dropdown for short code labels
         self.label_dropdown = QComboBox()
@@ -75,7 +83,7 @@ class SpotlightWindow(QMainWindow):
         self.label_dropdown.setInsertPolicy(QComboBox.NoInsert)
         self.label_dropdown.setDuplicatesEnabled(False)
         self.label_dropdown.setToolTip("Select labels")
-        self.label_dropdown.currentIndexChanged.connect(self.filter_label_codes)
+        self.label_dropdown.currentIndexChanged.connect(self.filter_labels)
 
         # Multiselect dropdown for annotation options
         self.annotation_dropdown = QComboBox()
@@ -149,29 +157,62 @@ class SpotlightWindow(QMainWindow):
 
         self.main_layout.addLayout(self.buttons_layout)
 
-    def filter_image_paths(self):
-        selected_image_path = self.image_dropdown.currentText()
-        self.status_bar.showMessage(f"Filtering image paths by: {selected_image_path}", 3000)
-        # Implement image path filtering logic here
+    def filter_images(self):
+        # Get all the selected images
+        if self.image_dropdown.itemText(0) == "All":
+            # If the first item is "All", then all images are selected
+            selected_images = self.image_window.image_paths
+        else:
+            selected_images = []
+            # Otherwise, iterate through the dropdown and add all selected images
+            for i in range(self.image_dropdown.count()):
+                if self.image_dropdown.itemText(i) != "All":
+                    selected_images.append(self.image_dropdown.itemText(i))
 
+        # TODO fix this
+        self.filtered_images = list(set(selected_images))
         self.update_table()
 
-    def filter_label_codes(self):
-        selected_label_code = self.label_dropdown.currentText()
-        self.status_bar.showMessage(f"Filtering label codes by: {selected_label_code}", 3000)
-        # Implement label code filtering logic here
+    def filter_labels(self):
+        # Get all the selected labels
+        if self.label_dropdown.itemText(0) == "All":
+            # If the first item is "All", then all labels are selected
+            selected_labels = [label.short_label_code for label in self.label_window.labels]
+        else:
+            selected_labels = []
+            # Otherwise, iterate through the dropdown and add all selected labels
+            for i in range(self.label_dropdown.count()):
+                if self.label_dropdown.itemText(i) != "All":
+                    selected_labels.append(self.label_dropdown.itemText(i))
 
+        self.filtered_labels = list(set(selected_labels))
         self.update_table()
 
     def filter_annotations(self):
-        selected_annotation = self.annotation_dropdown.currentText()
-        self.status_bar.showMessage(f"Filtering annotations by: {selected_annotation}", 3000)
-        # Implement annotation filtering logic here
+        # Get all the selected annotations
+        if self.annotation_dropdown.itemText(0) == "All":
+            # If the first item is "All", then all annotations are selected
+            selected_annotations = ["PatchAnnotations", "RectangleAnnotations", "PolygonAnnotations"]
+        else:
+            selected_annotations = []
+            # Otherwise, iterate through the dropdown and add all selected annotations
+            for i in range(self.annotation_dropdown.count()):
+                if self.annotation_dropdown.itemText(i) != "All":
+                    selected_annotations.append(self.annotation_dropdown.itemText(i))
 
+        self.filtered_annotations = list(set(selected_annotations))
         self.update_table()
 
     def update_table(self):
-        # Implement table update logic
+        # Display the annotations as rows in the table widget
+        # using the to_dict method of each annotation, if
+        # the annotation type is in the filtered_annotations list,
+        # the annotation's image path is in the filtered_images list,
+        # and the annotation's label is in the filtered_labels list.
+        self.table_widget.clear()
+        self.table_widget.setRowCount(0)
+        self.table_widget.setColumnCount(0)
+        # ...
         pass
 
     def update_graphics(self):
