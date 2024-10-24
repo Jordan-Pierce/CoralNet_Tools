@@ -1,23 +1,98 @@
 import warnings
+
+from PyQt5.QtGui import QIcon
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import os
 
 from ultralytics import YOLO
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QStatusBar, QTableWidget, QGraphicsView, QScrollArea,
-                             QGraphicsScene, QPushButton, QComboBox, QLabel, QWidget, QSizePolicy, QGridLayout,
-                             QFileDialog, QMainWindow, QTableWidgetItem)
+                             QGraphicsScene, QPushButton, QComboBox, QLabel, QWidget, QGridLayout, QFileDialog,
+                             QMainWindow, QTableWidgetItem, QTabWidget)
 
-from toolbox.Annotations.QtPatchAnnotation import PatchAnnotation
-from toolbox.Annotations.QtRectangleAnnotation import RectangleAnnotation
-from toolbox.Annotations.QtPolygonAnnotation import PolygonAnnotation
+from toolbox.utilities import get_icon_path
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------------------------------------------------------------
+
+
+class DeployModelDialog(QDialog):
+    def __init__(self, parent=None):
+        super(DeployModelDialog, self).__init__(parent)
+        self.setWindowTitle("Deploy Model")
+        self.model_path = None
+
+        # Create a tab widget
+        self.tab_widget = QTabWidget()
+
+        # Add the "Pre-trained" tab
+        self.pre_trained_tab = QWidget()
+        self.tab_widget.addTab(self.pre_trained_tab, "Pre-trained")
+        self.setup_pre_trained_tab()
+
+        # Add the "Fine-tuned" tab
+        self.fine_tuned_tab = QWidget()
+        self.tab_widget.addTab(self.fine_tuned_tab, "Fine-tuned")
+        self.setup_fine_tuned_tab()
+
+        # Create a layout for the dialog
+        layout = QVBoxLayout()
+        layout.addWidget(self.tab_widget)
+
+        # Add OK and Cancel buttons
+        button_layout = QHBoxLayout()
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(self.accept)
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def setup_pre_trained_tab(self):
+        layout = QVBoxLayout()
+
+        # Create a combobox with pre-trained model options
+        self.pre_trained_combobox = QComboBox()
+        self.pre_trained_combobox.addItems(["yolov8n-cls.pt",
+                                            "yolov8s-cls.pt",
+                                            "yolov8m-cls.pt",
+                                            "yolov8l-cls.pt",
+                                            "yolov8x-cls.pt"])
+        layout.addWidget(self.pre_trained_combobox)
+
+        self.pre_trained_tab.setLayout(layout)
+
+    def setup_fine_tuned_tab(self):
+        layout = QVBoxLayout()
+
+        # Create a button to open a file chooser for a .pt file
+        self.fine_tuned_button = QPushButton("Choose Fine-tuned Model")
+        self.fine_tuned_button.clicked.connect(self.choose_fine_tuned_model)
+        layout.addWidget(self.fine_tuned_button)
+
+        self.fine_tuned_tab.setLayout(layout)
+
+    def choose_fine_tuned_model(self):
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getOpenFileName(self,
+                                                   "Select Fine-tuned Model File",
+                                                   "",
+                                                   "Model Files (*.pt);;All Files (*)", options=options)
+        if file_name:
+            self.model_path = file_name
+
+    def accept(self):
+        if self.tab_widget.currentIndex() == 0:  # Pre-trained tab
+            selected_model = self.pre_trained_combobox.currentText()
+            self.model_path = selected_model
+        super(DeployModelDialog, self).accept()
 
 
 class SpotlightWindow(QMainWindow):
@@ -36,6 +111,9 @@ class SpotlightWindow(QMainWindow):
         self.loaded_model = None
 
         self.setWindowTitle("Spotlight")
+        # Set the window icon
+        spotlight_icon_path = get_icon_path("coral.png")
+        self.setWindowIcon(QIcon(spotlight_icon_path))
 
         # Create a central widget and main layout
         self.central_widget = QWidget()
@@ -89,9 +167,9 @@ class SpotlightWindow(QMainWindow):
         self.annotation_dropdown = QComboBox()
         self.annotation_dropdown.setEditable(True)
         self.annotation_dropdown.addItems(["All",
-                                           "PatchAnnotations",
-                                           "RectangleAnnotations",
-                                           "PolygonAnnotations"])
+                                           "PatchAnnotation",
+                                           "RectangleAnnotation",
+                                           "PolygonAnnotation"])
         self.annotation_dropdown.setInsertPolicy(QComboBox.NoInsert)
         self.annotation_dropdown.setDuplicatesEnabled(False)
         self.annotation_dropdown.setToolTip("Select annotations")
@@ -104,13 +182,17 @@ class SpotlightWindow(QMainWindow):
         self.status_bar.addWidget(QLabel("Annotations:"))
         self.status_bar.addWidget(self.annotation_dropdown)
 
-        # Add a Deploy model button, and an apply model button on the far right side of the status bar
+        # Add a Refresh button
+        self.refresh_button = QPushButton('Refresh', self)
+        self.refresh_button.clicked.connect(self.refresh_filters)
+        self.status_bar.addWidget(self.refresh_button)
+
+        # Add a deploy model button, and an apply model button
         self.deployed_model_text = QLabel(f"❌")
         self.status_bar.addPermanentWidget(self.deployed_model_text)
         self.deploy_model_button = QPushButton('Deploy Model', self)
         self.deploy_model_button.clicked.connect(self.deploy_model_dialog)
         self.status_bar.addPermanentWidget(self.deploy_model_button)
-
         self.apply_cluster_button = QPushButton('Apply Clustering', self)
         self.apply_cluster_button.clicked.connect(self.apply_clustering)
         self.status_bar.addPermanentWidget(self.apply_cluster_button)
@@ -164,10 +246,10 @@ class SpotlightWindow(QMainWindow):
             selected_images = self.image_window.image_paths
         else:
             selected_images = []
-            # Otherwise, iterate through the dropdown and add all selected images
-            for i in range(self.image_dropdown.count()):
-                if self.image_dropdown.itemText(i) != "All":
-                    selected_images.append(self.image_dropdown.itemText(i))
+            # Otherwise get the selected image
+            index = self.image_dropdown.currentIndex() + 1
+            image_path = self.image_window.image_paths[index]
+            selected_images.append(image_path)
 
         # TODO fix this
         self.filtered_images = list(set(selected_images))
@@ -175,15 +257,16 @@ class SpotlightWindow(QMainWindow):
 
     def filter_labels(self):
         # Get all the selected labels
-        if self.label_dropdown.itemText(0) == "All":
+        if self.label_dropdown.currentText() == "All":
             # If the first item is "All", then all labels are selected
-            selected_labels = [label.short_label_code for label in self.label_window.labels]
+            selected_labels = [label.id for label in self.label_window.labels]
         else:
             selected_labels = []
-            # Otherwise, iterate through the dropdown and add all selected labels
-            for i in range(self.label_dropdown.count()):
-                if self.label_dropdown.itemText(i) != "All":
-                    selected_labels.append(self.label_dropdown.itemText(i))
+            # Otherwise get the selected label
+            index = self.label_dropdown.currentIndex()
+            short_code = self.label_dropdown.itemText(index)
+            label = self.label_window.get_label_by_short_code(short_code)
+            selected_labels.append(label.id)
 
         self.filtered_labels = list(set(selected_labels))
         self.update_table()
@@ -192,16 +275,24 @@ class SpotlightWindow(QMainWindow):
         # Get all the selected annotations
         if self.annotation_dropdown.itemText(0) == "All":
             # If the first item is "All", then all annotations are selected
-            selected_annotations = ["PatchAnnotations", "RectangleAnnotations", "PolygonAnnotations"]
+            selected_annotations = ["PatchAnnotation", "RectangleAnnotation", "PolygonAnnotation"]
         else:
             selected_annotations = []
-            # Otherwise, iterate through the dropdown and add all selected annotations
-            for i in range(self.annotation_dropdown.count()):
-                if self.annotation_dropdown.itemText(i) != "All":
-                    selected_annotations.append(self.annotation_dropdown.itemText(i))
+            # Otherwise get the selected annotation
+            index = self.annotation_dropdown.currentIndex()
+            annotation_type = self.annotation_dropdown.itemText(index)
+            selected_annotations.append(annotation_type)
 
         self.filtered_annotations = list(set(selected_annotations))
         self.update_table()
+
+    def refresh_filters(self):
+        self.filter_images()
+        self.filter_labels()
+        self.filter_annotations()
+        self.update_table()
+        self.update_graphics()
+        self.update_scroll_area()
 
     def update_table(self):
         # Clear the table before populating it with new data
@@ -210,21 +301,29 @@ class SpotlightWindow(QMainWindow):
         self.table_widget.setColumnCount(0)
 
         # Set the column headers
-        self.table_widget.setColumnCount(4)
-        self.table_widget.setHorizontalHeaderLabels(["Label Short Code", "Label Long Code", "Image Path", "Annotation Type"])
+        self.table_widget.setColumnCount(5)
+        self.table_widget.setHorizontalHeaderLabels(["Annotation Type",
+                                                     "Label Short Code",
+                                                     "Label Long Code",
+                                                     "Image Name",
+                                                     "Image Path"])
 
         # Populate the table with filtered annotations
         for annotation in self.annotation_window.annotations_dict.values():
             annotation_dict = annotation.to_dict()
             if (annotation_dict['image_path'] in self.filtered_images and
-                annotation_dict['label_short_code'] in self.filtered_labels and
+                annotation_dict['label_id'] in self.filtered_labels and
                 type(annotation).__name__ in self.filtered_annotations):
+                image_name = os.path.basename(annotation_dict['image_path'])
                 row_position = self.table_widget.rowCount()
                 self.table_widget.insertRow(row_position)
-                self.table_widget.setItem(row_position, 0, QTableWidgetItem(annotation_dict['label_short_code']))
-                self.table_widget.setItem(row_position, 1, QTableWidgetItem(annotation_dict['label_long_code']))
-                self.table_widget.setItem(row_position, 2, QTableWidgetItem(annotation_dict['image_path']))
-                self.table_widget.setItem(row_position, 3, QTableWidgetItem(type(annotation).__name__))
+                self.table_widget.setItem(row_position, 0, QTableWidgetItem(type(annotation).__name__))
+                self.table_widget.setItem(row_position, 1, QTableWidgetItem(annotation_dict['label_short_code']))
+                self.table_widget.setItem(row_position, 2, QTableWidgetItem(annotation_dict['label_long_code']))
+                self.table_widget.setItem(row_position, 3, QTableWidgetItem(image_name))
+                self.table_widget.setItem(row_position, 4, QTableWidgetItem(annotation_dict['image_path']))
+
+        self.table_widget.resizeColumnsToContents()
 
     def update_graphics(self):
         # Implement graphics update logic
@@ -235,20 +334,18 @@ class SpotlightWindow(QMainWindow):
         pass
 
     def deploy_model_dialog(self):
-        options = QFileDialog.Options()
-        file_name, _ = QFileDialog.getOpenFileName(self,
-                                                   "Select Model File",
-                                                   "",
-                                                   "Model Files (*.pt);;All Files (*)", options=options)
-        if file_name:
-            self.load_model(file_name)
+        dialog = DeployModelDialog(self)
+        if dialog.exec_() == QDialog.Accepted:
+            model_path = dialog.model_path
+            if model_path:
+                self.load_model(model_path)
 
-            if self.loaded_model:
-                self.model_path = file_name
-                self.deployed_model_text.setText(f"✅")
-                self.status_bar.showMessage(f"Model deployed: {os.path.basename(self.model_path)}", 3000)
-            else:
-                self.status_bar.showMessage("Model failed to deploy.", 3000)
+                if self.loaded_model:
+                    self.model_path = model_path
+                    self.deployed_model_text.setText(f"✅")
+                    self.status_bar.showMessage(f"Model deployed: {os.path.basename(self.model_path)}", 3000)
+                else:
+                    self.status_bar.showMessage("Model failed to deploy.", 3000)
 
     def load_model(self, model_path):
         if not os.path.exists(model_path):
