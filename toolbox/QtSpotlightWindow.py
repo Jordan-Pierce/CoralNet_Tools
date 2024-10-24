@@ -1,12 +1,18 @@
-import os.path
 import warnings
-
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+import os
+
+from ultralytics import YOLO
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QStatusBar, QTableWidget, QGraphicsView, QScrollArea,
                              QGraphicsScene, QPushButton, QComboBox, QLabel, QWidget, QSizePolicy, QGridLayout,
-                             QFileDialog)
+                             QFileDialog, QMainWindow)
+
+from toolbox.Annotations.QtPatchAnnotation import PatchAnnotation
+from toolbox.Annotations.QtRectangleAnnotation import RectangleAnnotation
+from toolbox.Annotations.QtPolygonAnnotation import PolygonAnnotation
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -14,7 +20,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QStatusBar, QTab
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SpotlightWindow(QDialog):
+class SpotlightWindow(QMainWindow):
     def __init__(self, main_window, parent=None):
         super(SpotlightWindow, self).__init__(parent)
         self.main_window = main_window
@@ -26,10 +32,27 @@ class SpotlightWindow(QDialog):
         self.loaded_model = None
 
         self.setWindowTitle("Spotlight")
-        self.setWindowState(Qt.WindowMaximized)  # Ensure the dialog is maximized
 
-        # Create the main layout
-        self.main_layout = QVBoxLayout(self)
+        # Create a central widget and main layout
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.main_layout = QVBoxLayout(self.central_widget)
+
+    def showEvent(self, event):
+        self.setup_ui()
+        super(SpotlightWindow, self).showEvent(event)
+
+    def closeEvent(self, event):
+        # Do any cleanup here if needed
+        self.main_window.spotlight_window = None  # Clear the reference in the main window
+        event.accept()
+
+    def setup_ui(self):
+        # Clear the main layout to remove any existing widgets
+        while self.main_layout.count():
+            child = self.main_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
 
         # Add a status bar widget along the top
         self.status_bar = QStatusBar(self)
@@ -78,13 +101,11 @@ class SpotlightWindow(QDialog):
         self.status_bar.addPermanentWidget(self.deployed_model_text)
         self.deploy_model_button = QPushButton('Deploy Model', self)
         self.deploy_model_button.clicked.connect(self.deploy_model_dialog)
-        self.deploy_model_button.setToolTip("Deploy a model")
         self.status_bar.addPermanentWidget(self.deploy_model_button)
 
-        self.apply_model_button = QPushButton('Apply Model', self)
-        self.apply_model_button.clicked.connect(self.apply_model)
-        self.apply_model_button.setToolTip("Apply the deployed model")
-        self.status_bar.addPermanentWidget(self.apply_model_button)
+        self.apply_cluster_button = QPushButton('Apply Clustering', self)
+        self.apply_cluster_button.clicked.connect(self.apply_clustering)
+        self.status_bar.addPermanentWidget(self.apply_cluster_button)
 
         self.main_layout.addWidget(self.status_bar)
 
@@ -166,17 +187,38 @@ class SpotlightWindow(QDialog):
         file_name, _ = QFileDialog.getOpenFileName(self,
                                                    "Select Model File",
                                                    "",
-                                                   "Model Files (*.h5 *.pt);;All Files (*)", options=options)
+                                                   "Model Files (*.pt);;All Files (*)", options=options)
         if file_name:
-            self.model_path = file_name
-            self.deployed_model_text.setText(f"✅")
-            self.status_bar.showMessage(f"Model deployed: {os.path.basename(self.model_path)}", 3000)
+            self.load_model(file_name)
 
-    def apply_model(self):
-        if self.model_path:
-            self.status_bar.showMessage("Model applied successfully.", 3000)
-        else:
-            self.status_bar.showMessage("No model deployed.", 3000)
+            if self.loaded_model:
+                self.model_path = file_name
+                self.deployed_model_text.setText(f"✅")
+                self.status_bar.showMessage(f"Model deployed: {os.path.basename(self.model_path)}", 3000)
+            else:
+                self.status_bar.showMessage("Model failed to deploy.", 3000)
+
+    def load_model(self, model_path):
+        if not os.path.exists(model_path):
+            self.status_bar.showMessage("Model file does not exist.", 3000)
+            return
+
+        try:
+            self.loaded_model = YOLO(model_path, task='classify')
+            self.model_path = model_path
+
+        except Exception as e:
+            self.status_bar.showMessage("Model failed to load.", 3000)
+
+    def extract_features(self):
+        if not self.loaded_model:
+            self.status_bar.showMessage("Model not deployed.", 3000)
+            return
+
+    def apply_clustering(self):
+        if not self.loaded_model:
+            self.status_bar.showMessage("Model not deployed.", 3000)
+            return
 
     def apply(self):
         self.status_bar.showMessage("Changes applied successfully.", 3000)

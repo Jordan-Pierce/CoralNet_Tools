@@ -675,14 +675,16 @@ class MainWindow(QMainWindow):
             return
 
         try:
+
             # Proceed to open the dialog if images are loaded
             self.untoggle_all_tools()
+            if self.self.patch_annotation_sampling_dialog is None:
+                self.self.patch_annotation_sampling_dialog = PatchSamplingDialog(self)
             self.patch_annotation_sampling_dialog.exec_()
         except Exception as e:
             QMessageBox.critical(self, "Critical Error", f"{e}")
 
         self.patch_annotation_sampling_dialog = None
-        self.patch_annotation_sampling_dialog = PatchSamplingDialog(self)
 
     def open_import_dataset_dialog(self):
         try:
@@ -800,12 +802,12 @@ class MainWindow(QMainWindow):
 
         try:
             self.untoggle_all_tools()
-            self.spotlight_window.exec_()
+            if self.spotlight_window is None:
+                self.spotlight_window = SpotlightWindow(self)
+            self.spotlight_window.showMaximized()
         except Exception as e:
             QMessageBox.critical(self, "Critical Error", f"{e}")
-
-        self.spotlight_window = None
-        self.spotlight_window = SpotlightWindow(self)
+            self.spotlight_window = None
 
 
 class ClickableAction(QAction):
